@@ -74,8 +74,11 @@ int main(int argc, char *argv[]){
   
 
   
-
+  int num;
+  recv(dS,&num,sizeof(int),0);
   for(;;){
+    
+    if(num==1){
     
     if(semop(idSem,op,1)==-1){//on fait l'opération P sur le tableau dont l'id est idSem
       perror("erreur P");
@@ -108,6 +111,39 @@ int main(int argc, char *argv[]){
       break;
     }
     printf("Réponse: %s\n",rep); //reception message r1 pour 3.2 sinon r
+    }
+    else{
+      char rep[100];
+      sleep(1);
+      recv(dS,&rep,sizeof(rep),0);
+      if(strcmp(rep,"fin")==0){
+	printf("end");
+	break;
+      }
+      printf("Réponse: %s\n",rep); //reception message r1 pour 3.2 sinon r
+      if(semop(idSem,op,1)==-1){//on fait l'opération P sur le tableau dont l'id est idSem
+	perror("erreur P");
+	exit(1);
+      }
+      char saisie1[100]; //taille max du message à envoyer
+      printf("\nsaisir le message: ");
+      scanf("%s",saisie1);
+      int taille1=strlen(saisie1)+1;
+
+      int result = sendTCP(dS,saisie1,taille1,0); //la valeur de retour est traitée dans sendTCP
+    
+
+      if(semop(idSem,op+2,1)==-1){//on fait l'opération V
+	perror("erreur V");
+	exit(1);
+      }
+
+      if(strcmp(saisie1,"fin")==0){
+	printf("end");
+	break;
+      }
+    }
+      
   }
   close(dS);
 }
