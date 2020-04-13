@@ -17,7 +17,6 @@
 int clo1;
 int clo2;
 int clo3;
-//int *alldS= calloc(10 * sizeof(int));
 
 typedef struct Descripteur{
     int dS;
@@ -28,28 +27,27 @@ typedef struct Descripteur{
 struct Descripteur *descriG;
 
 void exitt(int n){
-    free(descriG);
 
-  int closecli1=close(clo1);
-  if(closecli1==-1){
-    perror("Error close : ");
-    close(clo3);
-    exit(1);
-  }
-  int closecli2=close(clo2);
-  if(closecli2==-1){
-    perror("Error close : ");
-    close(clo3);
-     exit(1);
+  for(int i=0;i<10;i++){
+    if(descriG->alldS[i] !=0){
+      int clo=close(descriG->alldS[i]);
+      if(clo==-1){
+        perror("Error close : ");
+      }
+      else{
+        printf("ok");
+      }
+    }
   }
 
-
+  free(descriG);
   int closecli3=close(clo3);
   if(closecli3==-1){
     perror("Error close : ");
     exit(1);
   }
   printf("end");
+  exit(0);
 }
 
 
@@ -70,14 +68,9 @@ void *recevoirConnexion(void * data){
   while(1){
     char msg2[200];
     rep=recv(perma,msg2,sizeof(msg2),0);
+    msg2[strlen(msg2)-1] = '\0';
     if(strcmp(msg2,"fin")==0){
       printf("%s leave ! \n",msg);
-      char fin[5]="fin";
-      int finn = send(perma,fin,sizeof(fin),0);
-      if(finn == 0 || finn == -1){
-        perror("erreur send");
-        exit(1);
-      }
       for(int i=0;i<10;i++){ //ajout tableau
         if(descri->alldS[i]==perma){
           descri->alldS[i]=0;
@@ -167,6 +160,7 @@ int main(int argc, char *argv[]){
       }
     }
     descri->dSC=dSC;
+    descriG=descri;
     pthread_t one;
     pthread_create(&one, NULL,recevoirConnexion, (void*)descri);
    

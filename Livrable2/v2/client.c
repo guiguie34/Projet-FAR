@@ -1,5 +1,4 @@
 #include <pthread.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -7,7 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "./sendTCP.h"
-#include <sys/types.h>
 #include <semaphore.h>
 #include <sys/sem.h>
 #include <sys/types.h>
@@ -17,6 +15,8 @@
 #include <signal.h>
 
 int dSG;
+
+
 void exitt(int n){
     char fin[5]="fin";
     sendTCP(dSG,fin,strlen(fin)+1,0);
@@ -25,6 +25,7 @@ void exitt(int n){
 		perror("error with closing client : ");
 		exit(1);
 	}
+    exit(0);
 }
 void* envoi(void *data){
     int *dS=data;
@@ -36,9 +37,10 @@ void* envoi(void *data){
         int taille1=strlen(saisie1)+1;
 
         int result = sendTCP(*dS,saisie1,taille1,0); //la valeur de retour est traitée dans sendTCP
+        saisie1[strlen(saisie1)-1] = '\0';
         if(strcmp(saisie1,"fin")==0){
             printf("end");
-            break;
+            exit(0);
         }
     }
     pthread_exit(NULL);
@@ -56,12 +58,11 @@ void* recevoir(void * data){
             perror("Error recv : ");
             exit(1);
         }
-        if(strcmp(rep,"fin")==0){
+        /*if(strcmp(rep,"fin")==0){
             printf("end");
             break;
-        }
+        }*/
         fputs(rep,stdout);
-        /*printf("Réponse: %s\n",rep);*/
     }
     pthread_exit(NULL);
 }
