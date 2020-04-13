@@ -19,7 +19,7 @@ int dSG;
 
 void exitt(int n){
     char fin[5]="fin";
-    sendTCP(dSG,fin,strlen(fin)+1,0);
+    sendTCP(dSG,fin,sizeof(fin),0);
     int clo = close(dSG);
     if(clo==-1){
 		perror("error with closing client : ");
@@ -36,7 +36,7 @@ void* envoi(void *data){
         fgets(saisie1,100,stdin);
         int taille1=strlen(saisie1)+1;
 
-        int result = sendTCP(*dS,saisie1,taille1,0); //la valeur de retour est traitée dans sendTCP
+        int result = sendTCP(*dS,saisie1,sizeof(saisie1),0); //la valeur de retour est traitée dans sendTCP
         saisie1[strlen(saisie1)-1] = '\0';
         if(strcmp(saisie1,"fin")==0){
             printf("end");
@@ -51,7 +51,7 @@ void* recevoir(void * data){
     int *dS=data;
     while(1){
 
-        char rep[100];
+        char rep[200];
   
         int rec = recv(*dS,&rep,sizeof(rep),0);
         if(rec==-1){
@@ -71,7 +71,7 @@ void envoiPseudo(char* pseudo, int dS){
 
     int taille1=strlen(pseudo)+1;
 
-    int result = sendTCP(dS,pseudo,taille1,0); //la valeur de retour est traitée dans sendTCP
+    int result = sendTCP(dS,pseudo,sizeof(pseudo),0); //la valeur de retour est traitée dans sendTCP
 
 }
 

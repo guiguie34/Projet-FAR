@@ -66,10 +66,12 @@ void *recevoirConnexion(void * data){
   }
 
   while(1){
-    char msg2[200];
+    char msg2[100];
+    char msg3[100];
     rep=recv(perma,msg2,sizeof(msg2),0);
+    strcpy(msg3,msg2);
     msg2[strlen(msg2)-1] = '\0';
-    if(strcmp(msg2,"fin")==0){
+    if(strcmp(msg2,"fin")==0 ||strcmp(msg3,"fin")==0){
       printf("%s leave ! \n",msg);
       for(int i=0;i<10;i++){ //ajout tableau
         if(descri->alldS[i]==perma){
@@ -79,10 +81,10 @@ void *recevoirConnexion(void * data){
       }
 	    break;
     }
-    printf("%s dit: %s\n",msg,msg2);
+    printf("%s dit: %s\n",msg,msg3);
     for(int i=0;i<10;i++){
       if(descri->alldS[i]!=perma && descri->alldS[i]!=0){
-        int snd = send(descri->alldS[i],msg2,sizeof(msg2),0);
+        int snd = send(descri->alldS[i],msg3,sizeof(msg3),0);
         if(snd == 0 || snd == -1){
           perror("erreur send");
           exit(1);
@@ -141,8 +143,8 @@ int main(int argc, char *argv[]){
   descriG=descri;
   descri->dS=dS;
   descri->alldS=calloc(10 , sizeof(int));
-  pthread_t two;
-  pthread_create(&two, NULL,valTab, (void*)descri);
+  /*pthread_t two;
+  pthread_create(&two, NULL,valTab, (void*)descri);*/
   while(1){
     int dSC=accept(descri->dS, (struct sockaddr*) &aC,&lg); //connexion
     if(dSC==-1){
