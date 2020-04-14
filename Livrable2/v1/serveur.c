@@ -68,7 +68,11 @@ void* oneTotwo(void *data){
             perror("erreur send");
             exit(1);
         }
-        if(strcmp(msg,"fin")==0){
+        char msg2[100];
+        strcpy(msg2,msg);
+        msg[strlen(msg)-1] = '\0';
+        if(strcmp(msg,"fin")==0 || strcmp(msg2,"fin")==0){
+          printf("end");
 	        break;
         }
     }
@@ -93,7 +97,11 @@ void* twoToone(void *data){
             perror("erreur send");
             exit(1);
         }
-        if(strcmp(msg,"fin")==0){
+        char msg2[100];
+        strcpy(msg2,msg);
+        msg[strlen(msg)-1] = '\0';
+        if(strcmp(msg,"fin")==0 || strcmp(msg2,"fin")){
+          printf("end");
 	        break;
         }
     }

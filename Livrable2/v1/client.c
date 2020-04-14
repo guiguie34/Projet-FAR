@@ -14,6 +14,29 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <string.h>
+#include <signal.h>
+
+int dSG;
+void fin(){
+    int clo = close(dSG);
+    if(clo==-1){
+		perror("error with closing client : ");
+		exit(1);
+	}
+    exit(0);
+}
+
+void exitt(int n){
+    char *fin="fin";
+
+    sendTCP(dSG,fin,sizeof(fin),0);
+    int clo = close(dSG);
+    if(clo==-1){
+		perror("error with closing client : ");
+		exit(1);
+	}
+    exit(0);
+}
 
 void* envoi(void *data){
     int *dS=data;
@@ -24,10 +47,11 @@ void* envoi(void *data){
         fgets(saisie1,100,stdin);
         int taille1=strlen(saisie1)+1;
 
-        int result = sendTCP(*dS,saisie1,taille1,0); //la valeur de retour est traitée dans sendTCP
+        int result = sendTCP(*dS,saisie1,sizeof(saisie1),0); //la valeur de retour est traitée dans sendTCP
+        saisie1[strlen(saisie1)-1] = '\0';
         if(strcmp(saisie1,"fin")==0){
             printf("end");
-            break;
+            fin();    
         }
     }
     pthread_exit(NULL);
@@ -45,11 +69,14 @@ void* recevoir(void * data){
             perror("Error recv : ");
             exit(1);
         }
-        if(strcmp(rep,"fin")==0){
-            printf("end");
-            break;
-        }
         fputs(rep,stdout);
+        char rep2[100];
+        strcmp(rep2,rep);
+        rep[strlen(rep)-1] = '\0';
+        if(strcmp(rep,"fin")==0 || strcmp(rep2,"fin")){
+            printf("end");
+            fin();
+        }
         /*printf("Réponse: %s\n",rep);*/
     }
     pthread_exit(NULL);
@@ -60,7 +87,7 @@ void* recevoir(void * data){
 int main(int argc, char *argv[]){
 
 
-    int dS= socket(AF_INET, SOCK_STREAM, 0);
+    int dS=dSG= socket(AF_INET, SOCK_STREAM, 0);
     if(dS==-1){
         perror("Erreur ! Socket non créee");
         exit(1);
@@ -88,6 +115,7 @@ int main(int argc, char *argv[]){
     else{
         printf("Connexion effectuée !\n");
     }
+    signal(SIGINT,exitt);
 
     pthread_t envo;
     pthread_t recpt;
