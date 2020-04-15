@@ -43,6 +43,7 @@ void* envoi(void *data){
     while(1){
 
         char saisie1[100]; //taille max du message à envoyer
+        memset(saisie1,0,sizeof(saisie1));
         //printf("\nsaisir le message: ");
         fgets(saisie1,100,stdin);
         int taille1=strlen(saisie1)+1;
@@ -63,7 +64,6 @@ void* recevoir(void * data){
     while(1){
 
         char rep[100];
-  
         int rec = recv(*dS,&rep,sizeof(rep),0);
         if(rec==-1){
             perror("Error recv : ");
@@ -71,9 +71,9 @@ void* recevoir(void * data){
         }
         fputs(rep,stdout);
         char rep2[100];
-        strcmp(rep2,rep);
+        strcpy(rep2,rep);
         rep[strlen(rep)-1] = '\0';
-        if(strcmp(rep,"fin")==0 || strcmp(rep2,"fin")){
+        if(strcmp(rep,"fin")==0 || strcmp(rep2,"fin")==0){
             printf("end");
             fin();
         }

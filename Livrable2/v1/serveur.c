@@ -21,6 +21,8 @@ int clo3;
 typedef struct Descripteur{
     int dSC;
     int dSC2;
+    pthread_t *one;
+    pthread_t *two;
 }Descripteur;
 
 struct Descripteur *descriG;
@@ -56,6 +58,7 @@ void* oneTotwo(void *data){
     char msg[100];
 
     while(1){
+        memset(msg,0,sizeof(msg));
         int rep = recv(descri->dSC,msg,sizeof(msg),0);
         if(rep==-1){
 	        perror("Echec de la reception");
@@ -76,6 +79,7 @@ void* oneTotwo(void *data){
 	        break;
         }
     }
+    pthread_cancel(*(descri->two));
     pthread_exit(NULL);
 
 }
@@ -85,6 +89,7 @@ void* twoToone(void *data){
     char msg[100];
 
     while(1){
+        memset(msg,0,sizeof(msg));
         int rep = recv(descri->dSC2,msg,sizeof(msg),0);
         if(rep==-1){
 	        perror("Echec de la reception");
@@ -100,11 +105,12 @@ void* twoToone(void *data){
         char msg2[100];
         strcpy(msg2,msg);
         msg[strlen(msg)-1] = '\0';
-        if(strcmp(msg,"fin")==0 || strcmp(msg2,"fin")){
+        if(strcmp(msg,"fin")==0 || strcmp(msg2,"fin")==0){
           printf("end");
 	        break;
         }
     }
+    pthread_cancel(*(descri->one));
     pthread_exit(NULL);
 }
 
@@ -160,6 +166,8 @@ int main(int argc, char *argv[]){
     descri->dSC2=dSC2;
     pthread_t one;
     pthread_t two;
+    descri->one=&one;
+    descri->two=&two;
     pthread_create(&one, NULL,oneTotwo, (void*)descri);  
     pthread_create(&two, NULL,twoToone, (void*)descri); 
     pthread_join(one, NULL);
