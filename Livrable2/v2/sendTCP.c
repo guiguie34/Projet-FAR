@@ -11,14 +11,14 @@ int sendTCP(int sock, char *msg,int sizeOct,int option){
 	int res = send(sock,msg,sizeOct,option);
 	if(res==0 || res == -1){
 		perror("Erreur");
-		exit(0);
+		exit(1);
 	}
 	int count = res;
 	while(count< strlen(msg)+1){
 		res = send(sock,msg+res,sizeOct-count,option);
 		if(res==0 || res == -1){
 		perror("erreur");
-		exit(0);
+		exit(1);
 		}
 		count= count + res;
 	}

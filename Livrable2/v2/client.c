@@ -18,28 +18,28 @@ int dSG;
 
 
 void exitt(int n){
-    char fin[5]="fin";
+    char *fin="fin";
     sendTCP(dSG,fin,sizeof(fin),0);
     int clo = close(dSG);
     if(clo==-1){
-		perror("error with closing client : ");
+		perror("Erreur fermeture socket: ");
 		exit(1);
 	}
     exit(0);
 }
 void* envoi(void *data){
-    int *dS=data;
-    while(1){
+    int *dS=data; //on recupère le descripteur de socket
+    while(1){ 
 
-        char saisie1[100]; //taille max du message à envoyer
+        char saisie1[100];
+        memset(saisie1,0,sizeof(saisie1));
         //printf("\nsaisir le message: ");
         fgets(saisie1,100,stdin);
-        int taille1=strlen(saisie1)+1;
 
         int result = sendTCP(*dS,saisie1,sizeof(saisie1),0); //la valeur de retour est traitée dans sendTCP
-        saisie1[strlen(saisie1)-1] = '\0';
+        saisie1[strlen(saisie1)-1] = '\0'; //permet d'appliquer strcmp après fgets
         if(strcmp(saisie1,"fin")==0){
-            printf("end");
+            printf("Arret du client\n");
             exit(0);
         }
     }
@@ -51,17 +51,17 @@ void* recevoir(void * data){
     int *dS=data;
     while(1){
 
-        char rep[200];
+        char rep[100];
   
         int rec = recv(*dS,&rep,sizeof(rep),0);
         if(rec==-1){
             perror("Error recv : ");
             exit(1);
         }
-        /*if(strcmp(rep,"fin")==0){
-            printf("end");
-            break;
-        }*/
+        if(strcmp(rep,"fin")==0){ //utile pour les arrets des serveur
+            printf("Arret du serveur\n");
+            exit(0);
+        }
         fputs(rep,stdout);
     }
     pthread_exit(NULL);
@@ -69,7 +69,6 @@ void* recevoir(void * data){
 
 void envoiPseudo(char* pseudo, int dS){
 
-    int taille1=strlen(pseudo)+1;
 
     int result = sendTCP(dS,pseudo,sizeof(pseudo),0); //la valeur de retour est traitée dans sendTCP
 
@@ -116,7 +115,7 @@ int main(int argc, char *argv[]){
 
     printf("Saisir votre pseudo: ");
     char pseud[100];
-    scanf("%s",pseud);
+    fgets(pseud,100,stdin);
     envoiPseudo(pseud,dS);
 
     pthread_create(&envo, NULL,envoi, (void*)&dS); 
