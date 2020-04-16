@@ -16,42 +16,41 @@
 #include <string.h>
 #include <signal.h>
 
-int dSG;
-void fin(){
+int dSG; //variable globale contenant le descripteur de socket
+void fin(){ //fonction qui gère le cas où un message = fin
     int clo = close(dSG);
     if(clo==-1){
-		perror("error with closing client : ");
+		perror("Erreur fermeture socket ");
 		exit(1);
 	}
     exit(0);
 }
 
-void exitt(int n){
+void exitt(int n){ //gestion ctrl-c
     char *fin="fin";
 
-    sendTCP(dSG,fin,sizeof(fin),0);
+    sendTCP(dSG,fin,sizeof(fin),0); //voir le fichier sendTCP.c (valeur de retour directement gérée)
     int clo = close(dSG);
     if(clo==-1){
-		perror("error with closing client : ");
+		perror("Erreur fermeture socket ");
 		exit(1);
 	}
     exit(0);
 }
 
 void* envoi(void *data){
-    int *dS=data;
+    int *dS=data; //on recupère le descripteur de socket (avec un pointeur)
     while(1){
 
-        char saisie1[100]; //taille max du message à envoyer
+        char saisie1[100];
         memset(saisie1,0,sizeof(saisie1));
         //printf("\nsaisir le message: ");
         fgets(saisie1,100,stdin);
-        int taille1=strlen(saisie1)+1;
 
         int result = sendTCP(*dS,saisie1,sizeof(saisie1),0); //la valeur de retour est traitée dans sendTCP
-        saisie1[strlen(saisie1)-1] = '\0';
+        saisie1[strlen(saisie1)-1] = '\0'; //permet de comparer après un fgets
         if(strcmp(saisie1,"fin")==0){
-            printf("end");
+            printf("Arret du client\n");
             fin();    
         }
     }
@@ -64,17 +63,17 @@ void* recevoir(void * data){
     while(1){
 
         char rep[100];
-        int rec = recv(*dS,&rep,sizeof(rep),0);
+        int rec = recv(*dS,&rep,sizeof(rep),0); //reception du message
         if(rec==-1){
             perror("Error recv : ");
             exit(1);
         }
-        fputs(rep,stdout);
+        fputs(rep,stdout); //envoi de la réponse vers la sortie standard
         char rep2[100];
         strcpy(rep2,rep);
         rep[strlen(rep)-1] = '\0';
-        if(strcmp(rep,"fin")==0 || strcmp(rep2,"fin")==0){
-            printf("end");
+        if(strcmp(rep,"fin")==0 || strcmp(rep2,"fin")==0){ //permet verifier si le deuxième client à envoyer fin manuellement
+            printf("Arret du client\n"); //ou si il a fait ctrl-c (donc sans fgets)
             fin();
         }
         /*printf("Réponse: %s\n",rep);*/
@@ -120,10 +119,23 @@ int main(int argc, char *argv[]){
     pthread_t envo;
     pthread_t recpt;
 
-    pthread_create(&envo, NULL,envoi, (void*)&dS); 
-    pthread_create(&recpt, NULL,recevoir, (void*)&dS);
-    pthread_join(envo, NULL); 
-    pthread_join(recpt, NULL); 
+    if(pthread_create(&envo, NULL,envoi, (void*)&dS) !=0){ //creation thread
+        perror("Erreur création thread");
+        exit(1);
+    }
+    if(pthread_create(&recpt, NULL,recevoir, (void*)&dS) !=0){
+        perror("Erreur création thread");
+        exit(1);
+    }
+
+    if(pthread_join(envo, NULL) !=0){ //attente terminaison thread
+        perror("Erreur join");
+        exit(1);
+    } 
+    if(pthread_join(recpt, NULL) !=0){
+        perror("Erreur join");
+        exit(1);
+    }
     int clo = close(dS);
     if(clo==-1){
 		perror("error with closing client : ");
