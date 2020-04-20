@@ -96,11 +96,7 @@ void* oneTotwo(void *data){
     }
     pthread_cancel(*(descri->two));
     //fermeture du thread voisin à celui-ci
-    /*
-    if(pthread_cancel(*(descri->two))!=0){
-      perror("Erreur fermture thread voisin");
-      exit(1);
-    } //fermeture du thread voisin à celui-ci*/
+    
     
     pthread_exit(NULL); // fermeture du thread courant
 }
@@ -133,10 +129,7 @@ void* twoToone(void *data){ //fonctionnement similaire à la fonction au dessus
     }
 
     pthread_cancel(*(descri->one));
-    /*if(pthread_cancel(*(descri->one)) !=0){
-      perror("Erreur fermeture thread voisin");
-      exit(1);
-    }*/
+    
     pthread_exit(NULL);
 }
 
