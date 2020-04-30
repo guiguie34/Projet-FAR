@@ -16,12 +16,12 @@
 
 
 int clo3; //variable globale
-
+int port;
 typedef struct Descripteur{
-    int dS; //descripteur de socket du serveur
+    int dS;//descripteur de socket du serveur
     int *alldS; //tous les descripteurs des clients
     int dSC; //descripteur du client courant
-}Descripteur;
+}Descripteur; 
 
 struct Descripteur *descriG;
 
@@ -58,14 +58,55 @@ void exitt(int n){ //gestion ctrl-c
 
 void *sendFichier(void * data){
 
+  int dS2=socket(AF_INET, SOCK_STREAM, 0);
+  if(dS2==-1){
+    perror("Erreur ! Socket non créee");
+    exit(1);
+  }
+  if(setsockopt(dS2,SOL_SOCKET,SO_REUSEADDR,&(int){1},sizeof(int)) < 0){
+    perror("Réecriture du port échouée");
+    exit(1);
+  }
+  struct sockaddr_in ad;
+  
+  ad.sin_family = AF_INET;
+  ad.sin_addr.s_addr = INADDR_ANY;
+  ad.sin_port = htons(port+1);
+  
+  int bi= bind(dS2,(struct sockaddr*)&ad,sizeof(ad));
+  if(bi == -1){
+    perror("Nommage échoué");
+    exit(1);
+  }
+  
+  int li = listen(dS2,1);
+  if(li == -1){
+    perror("File de connexion non intialisée");
+    exit(1);
+  }
+  struct sockaddr_in aC;
+  socklen_t lg = sizeof(struct sockaddr_in);
+
+  int dSC2=accept(dS2, (struct sockaddr*) &aC,&lg); //Connexion du client
+    if(dSC2==-1){
+      perror("Erreur connexion");
+      exit(1);
+  }
+
+  struct Descripteur *descri2=malloc(sizeof(Descripteur));
+  descri2->dS=dS2;
+  descri2->alldS=calloc(10 , sizeof(int)); //alloue un tableau de 10 cases initialisées à 0
+
   struct Descripteur *descri=data;
   printf("Transfert fichier");
   //recevoir le fichier puis l'envoyer aux autres clients (avec le mot clé file envoyé)
   int rep;
   char msg[100];
   char *fil="file";
+  int nombre=0;
   for(int i=0;i<10;i++){
       if(descri->alldS[i]!=descri->dSC && descri->alldS[i]!=0){ //envoi aux autres clients
+        nombre++;
         int snd = send(descri->alldS[i],fil,sizeof(fil),0);
         if(snd == 0 || snd == -1){
           perror("erreur send");
@@ -73,23 +114,38 @@ void *sendFichier(void * data){
         }
       }
   }
+  for(int i=0;i<nombre;i++){
+    int dSC=accept(dS2, (struct sockaddr*) &aC,&lg);
+    descri2->alldS[i]=dSC;
+    
+  }
   sleep(1);
-  while(rep = recv(descri->dSC,msg,sizeof(msg),0)>0){
-    printf("%s",msg);
+  while(rep = recv(dSC2,msg,sizeof(msg),0)>0){
+    printf("1 %s",msg);
     for(int i=0;i<10;i++){
-        if(descri->alldS[i]!=descri->dSC && descri->alldS[i]!=0){ //envoi aux autres clients
-          int snd = send(descri->alldS[i],msg,sizeof(msg),0);
+        if(descri2->alldS[i]!=0){ //envoi aux autres clients
+          printf("testtttt");
+          int snd = send(descri2->alldS[i],msg,sizeof(msg),0);
           if(snd == 0 || snd == -1){
             perror("erreur send");
             exit(1);
           }
         }
     }
+    printf("%d",rep);
+    if (rep < 100){
+      break;
+    }
     memset(msg,0,sizeof(msg));
   }
   if(rep==-1){
     perror("Echec de la reception du message");
     exit(1);
+  }
+  for(int i=0;i<10;i++){
+        if(descri2->alldS[i]!=0){
+          close(descri2->alldS[i]);
+    }
   }
   printf("transfert ok");
   pthread_exit(NULL);
@@ -191,6 +247,7 @@ int main(int argc, char *argv[]){
   
   ad.sin_family = AF_INET;
   ad.sin_addr.s_addr = INADDR_ANY;
+  port=atoi(argv[1]);
   ad.sin_port = htons(atoi(argv[1]));
   
   int bi= bind(dS,(struct sockaddr*)&ad,sizeof(ad));

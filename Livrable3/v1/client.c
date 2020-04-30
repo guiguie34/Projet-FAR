@@ -15,6 +15,8 @@
 #include <signal.h>
 
 int dSG;
+int port;
+char *ip;
 
 
 void exitt(int n){
@@ -29,10 +31,35 @@ void exitt(int n){
 }
 
 void* envoiFichier(void *data){
+    int dS2= socket(AF_INET, SOCK_STREAM, 0);
+    if(dS2==-1){
+        perror("Erreur ! Socket non créee");
+        exit(1);
+    }
 
-    int *dS=data;
+    struct sockaddr_in adServ ;
+    adServ.sin_family = AF_INET ; 
+    adServ.sin_port = htons(port+1);
+    int res = inet_pton(AF_INET,ip, &(adServ.sin_addr));
+    if(res == -1){
+        perror("Erreur ! Famille d'adresse non valide");
+        exit(1);
+    }
+    else if(res == 0){
+        perror("Erreur ! Adresse réseau non valide");
+        exit(1);
+    }
+
+    socklen_t lgA = sizeof(struct sockaddr_in);
+    res = connect(dS2, (struct sockaddr *) &adServ, lgA); //connexion de la socket decrite par dS à l'adresse donnée (adresse de longeur lgA)
+    if(res==-1){
+        perror("connexion échouée");
+        exit(1);
+    }
+
+    
     printf("EnvoiFichier");
-    FILE *fp = fopen("test.txt","r");
+    FILE *fp = fopen("image.png","r");
     if(fp==NULL)
     {
         printf("File opern error");
@@ -43,9 +70,9 @@ void* envoiFichier(void *data){
         int nread = fread(buff,100,1,fp);  
         printf("%s",buff);
         
-        printf("%d",*dS);
+        printf("%d",dS2);
         
-        sendTCP(dSG,buff,sizeof(buff),0);
+        sendTCP(dS2,buff,sizeof(buff),0);
         
         if (nread < 100){
             if (feof(fp)){
@@ -57,17 +84,45 @@ void* envoiFichier(void *data){
             break;
         }
     }
+    close(dS2);
     fclose(fp);
     pthread_exit(NULL);
 }
 
 void* receptionFichier(void *data){
+
+    int dS2= socket(AF_INET, SOCK_STREAM, 0);
+    if(dS2==-1){
+        perror("Erreur ! Socket non créee");
+        exit(1);
+    }
+
+    struct sockaddr_in adServ ;
+    adServ.sin_family = AF_INET ; 
+    adServ.sin_port = htons(port+1);
+    int res = inet_pton(AF_INET,ip, &(adServ.sin_addr));
+    if(res == -1){
+        perror("Erreur ! Famille d'adresse non valide");
+        exit(1);
+    }
+    else if(res == 0){
+        perror("Erreur ! Adresse réseau non valide");
+        exit(1);
+    }
+
+    socklen_t lgA = sizeof(struct sockaddr_in);
+    res = connect(dS2, (struct sockaddr *) &adServ, lgA); //connexion de la socket decrite par dS à l'adresse donnée (adresse de longeur lgA)
+    if(res==-1){
+        perror("connexion échouée");
+        exit(1);
+    }
+
     printf("Reception fichier");
-    int *dS=data;
+    //int *dS=data;
     FILE *fp;
 
 	printf("Receiving file...");
-   	fp = fopen("test1.txt", "a+"); 
+   	fp = fopen("image1.png", "a+"); 
     if(NULL == fp){
        	printf("Error opening file");
         exit(1);
@@ -75,11 +130,20 @@ void* receptionFichier(void *data){
     char rep[100];
     /* Receive data in chunks of 256 bytes */
     int byte=0;
-    while(byte=recv(dSG,&rep,sizeof(rep),0) > 0)
+    while(byte=recv(dS2,&rep,sizeof(rep),0) > 0)
     {
         printf("%d",byte);
         printf("%s",rep);
-        fprintf(fp,rep);
+        fprintf(fp,"%s",rep);
+        if (byte < 100){
+            if (feof(fp)){
+                printf("End of file\n");
+            }
+            if (ferror(fp)){
+                printf("Error reading\n");
+            }
+            break;
+        }
     }
     fclose(fp);
 
@@ -87,6 +151,7 @@ void* receptionFichier(void *data){
     {
         printf("\n Read Error \n");
     }
+    close(dS2);
     printf("\nFile OK....Completed\n");
     pthread_exit(NULL);
     
@@ -170,7 +235,9 @@ int main(int argc, char *argv[]){
     }
 
     struct sockaddr_in adServ ;
-    adServ.sin_family = AF_INET ; 
+    adServ.sin_family = AF_INET ;
+    port=atoi(argv[2]); 
+    ip=argv[1];
     adServ.sin_port = htons(atoi(argv[2]));
     int res = inet_pton(AF_INET,argv[1], &(adServ.sin_addr));
     if(res == -1){
