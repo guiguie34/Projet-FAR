@@ -79,7 +79,7 @@ void *sendFichier(void * data){
     exit(1);
   }
   
-  int li = listen(dS2,1);
+  int li = listen(dS2,10);
   if(li == -1){
     perror("File de connexion non intialisée");
     exit(1);
@@ -119,9 +119,27 @@ void *sendFichier(void * data){
     descri2->alldS[i]=dSC;
     
   }
-  sleep(1);
-  while(rep = recv(dSC2,msg,sizeof(msg),0)>0){
-    printf("1 %s",msg);
+  int taille;
+  int tailleRecv = recv(dSC2,&taille,sizeof(int),0);
+  printf("%d",taille);
+  int increment=0;
+  for(int i=0;i<nombre;i++){
+    int tailleSend=send(descri2->alldS[i],&taille,sizeof(int),0);
+    printf("%d\n",descri2->alldS[i]);
+    if(tailleSend==0 || tailleSend==-1){
+      perror("Erreur recv");
+      exit(1);
+    }
+  }
+  
+  while(increment<taille){
+    int rec = recv(dSC2,msg,sizeof(msg),0);
+    if(rec==0 || rec==-1){
+      perror("Erreur recv");
+      exit(1);
+    }
+    increment=increment+rec;
+    printf("%s",msg);
     for(int i=0;i<10;i++){
         if(descri2->alldS[i]!=0){ //envoi aux autres clients
           printf("testtttt");
@@ -132,10 +150,10 @@ void *sendFichier(void * data){
           }
         }
     }
-    printf("%d",rep);
+    /*printf("%d",rep);
     if (rep < 100){
       break;
-    }
+    }*/
     memset(msg,0,sizeof(msg));
   }
   if(rep==-1){
@@ -195,7 +213,7 @@ void *recevoirConnexion(void * data){
         perror("Erreur création thread envoi");
         exit(1);
       }
-      pthread_join(fichier, NULL); 
+      //pthread_join(fichier, NULL); 
     }
     else{
       printf("%s dit: %s\n",msg,msg3);

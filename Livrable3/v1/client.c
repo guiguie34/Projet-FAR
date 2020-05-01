@@ -13,6 +13,7 @@
 #include <sys/msg.h>
 #include <string.h>
 #include <signal.h>
+#include <sys/stat.h>
 
 int dSG;
 int port;
@@ -28,6 +29,25 @@ void exitt(int n){
 		exit(1);
 	}
     exit(0);
+}
+/*
+long int findSize(const char file_name)
+{
+    struct stat st;
+
+    if(stat(file_name,&st)==0)
+        return (st.st_size);
+    else
+        return -1;
+}
+*/
+unsigned long fsize(char* file)
+{
+    FILE * f = fopen(file, "r");
+    fseek(f, 0, SEEK_END);
+    unsigned long len = (unsigned long)ftell(f);
+    fclose(f);
+    return len;
 }
 
 void* envoiFichier(void *data){
@@ -65,12 +85,19 @@ void* envoiFichier(void *data){
         printf("File opern error");
         exit(1); 
     }
-    while(1){
+    int taille = fsize("image.png");
+    printf("la taille est : %d \n",taille);
+    int rep =send(dS2,&taille,sizeof(int),0);
+    if(rep==0||rep==-1){
+        perror("Erreur send");
+        exit(1);
+    }
+    int increment=0;
+    /*while(1){
         unsigned char buff[100];
         int nread = fread(buff,100,1,fp);  
         printf("%s",buff);
         
-        printf("%d",dS2);
         
         sendTCP(dS2,buff,sizeof(buff),0);
         
@@ -83,6 +110,30 @@ void* envoiFichier(void *data){
             }
             break;
         }
+    }*/
+
+    while(increment<taille){
+        unsigned char buff[100];
+        int nread = fread(buff,1,100,fp);
+        printf("%d",increment);
+        printf("%s",buff);
+        rep = send(dS2,buff,sizeof(buff),0);
+        if(rep==-1 || rep==0){
+            perror("Erreur");
+            exit(1);
+        }
+        if (nread < 100){
+            if (feof(fp)){
+                printf("End of file\n");
+            }
+            if (ferror(fp)){
+                printf("Error reading\n");
+            }
+            break;
+        }
+        memset(buff,0,sizeof(buff));
+        increment=increment+nread;
+        
     }
     close(dS2);
     fclose(fp);
@@ -127,11 +178,22 @@ void* receptionFichier(void *data){
        	printf("Error opening file");
         exit(1);
     }
+
+
+    int taille;
+    int tailleRep=recv(dS2,&taille,sizeof(int),0);
+    int increment=0;
     char rep[100];
     /* Receive data in chunks of 256 bytes */
     int byte=0;
-    while(byte=recv(dS2,&rep,sizeof(rep),0) > 0)
+    while(increment<taille)
     {
+        byte=recv(dS2,&rep,sizeof(rep),0);
+        if(byte==0||byte==-1){
+            perror("Erreur recv");
+            exit(1);
+        }
+        increment=increment+byte;
         printf("%d",byte);
         printf("%s",rep);
         fprintf(fp,"%s",rep);
@@ -144,6 +206,7 @@ void* receptionFichier(void *data){
             }
             break;
         }
+        memset(rep,0,sizeof(rep));
     }
     fclose(fp);
 
@@ -180,7 +243,7 @@ void* envoi(void *data){
                 perror("Erreur création thread");
                 exit(1);
             }
-            pthread_join(fichier,NULL);
+            //pthread_join(fichier,NULL);
         }
     }
     pthread_exit(NULL);
@@ -209,7 +272,7 @@ void* recevoir(void * data){
                 perror("Erreur création thread");
                 exit(1);
             }
-            pthread_join(fichier2,NULL);
+            //pthread_join(fichier2,NULL);
         }
         fputs(rep,stdout);
     }
