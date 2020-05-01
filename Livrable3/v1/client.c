@@ -196,7 +196,8 @@ void* receptionFichier(void *data){
         increment=increment+byte;
         printf("%d",byte);
         printf("%s",rep);
-        fprintf(fp,"%s",rep);
+        //fprintf(fp,"%s",rep);
+        fwrite(rep, 1, 100, fp);
         if (byte < 100){
             if (feof(fp)){
                 printf("End of file\n");
