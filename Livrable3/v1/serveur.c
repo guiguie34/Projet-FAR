@@ -98,7 +98,7 @@ void *sendFichier(void * data){
   descri2->alldS=calloc(10 , sizeof(int)); //alloue un tableau de 10 cases initialisées à 0
 
   struct Descripteur *descri=data;
-  printf("Transfert fichier");
+  printf("Transfert fichier ");
   //recevoir le fichier puis l'envoyer aux autres clients (avec le mot clé file envoyé)
   int rep;
   char msg[100];
@@ -121,19 +121,19 @@ void *sendFichier(void * data){
   }
   int taille;
   int tailleRecv = recv(dSC2,&taille,sizeof(int),0);
-  printf("%d",taille);
+  //printf("%d",taille);
   char nomFichier[100];
   int nomFichierr=recv(dSC2,nomFichier,sizeof(nomFichier),0);
   int increment=0;
   for(int i=0;i<nombre;i++){
     int tailleSend=send(descri2->alldS[i],&taille,sizeof(int),0);
-    printf("%d\n",descri2->alldS[i]);
+    //printf("%d\n",descri2->alldS[i]);
     if(tailleSend==0 || tailleSend==-1){
       perror("Erreur recv");
       exit(1);
     }
     int nomFichierSend=send(descri2->alldS[i],nomFichier,sizeof(nomFichier),0);
-    printf("%d\n",descri2->alldS[i]);
+    //printf("%d\n",descri2->alldS[i]);
     if(nomFichierSend==0 || nomFichierSend==-1){
       perror("Erreur recv");
       exit(1);
@@ -147,10 +147,9 @@ void *sendFichier(void * data){
       exit(1);
     }
     increment=increment+rec;
-    printf("%s",msg);
+    //printf("%s",msg);
     for(int i=0;i<10;i++){
         if(descri2->alldS[i]!=0){ //envoi aux autres clients
-          printf("testtttt");
           int snd = send(descri2->alldS[i],msg,sizeof(msg),0);
           if(snd == 0 || snd == -1){
             perror("erreur send");
@@ -175,7 +174,8 @@ void *sendFichier(void * data){
   }
   close(dSC2);
   close(dS2);
-  printf("transfert ok");
+  printf("transfert ok\n");
+  free(descri2);
   pthread_exit(NULL);
 }
 void *recevoirConnexion(void * data){
@@ -213,7 +213,7 @@ void *recevoirConnexion(void * data){
 	    break;
     }
     if(strcmp(msg2,"file")==0){
-      printf("Avant thread");
+      //printf("Avant thread");
       struct Descripteur *descriCourant=malloc(sizeof(Descripteur));
       descriCourant->alldS=descri->alldS;
       descriCourant->dS=descri->dS;

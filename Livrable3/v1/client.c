@@ -19,6 +19,7 @@
 int dSG;
 int port;
 char *ip;
+int attente;
 
 
 void exitt(int n){
@@ -31,17 +32,7 @@ void exitt(int n){
 	}
     exit(0);
 }
-/*
-long int findSize(const char file_name)
-{
-    struct stat st;
 
-    if(stat(file_name,&st)==0)
-        return (st.st_size);
-    else
-        return -1;
-}
-*/
 unsigned long fsize(char* file)
 {
     FILE * f = fopen(file, "r");
@@ -79,51 +70,19 @@ void* envoiFichier(void *data){
     }
 
     
-    printf("EnvoiFichier");
+
     DIR *d;
     struct dirent *dir;
     d = opendir("./DL");
     if (d) {
+        printf("Fichiers disponibles: ");
     while ((dir = readdir(d)) != NULL) {
         printf("%s\n", dir->d_name);
     }
     closedir(d);
     }
 
-    /*char cwd[PATH_MAX];
-    if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        printf("Current working dir: %s\n", cwd);
-    } else {
-        perror("getcwd() error");
-    }*/
-    //get the file name 
-    /*
-    char file[100];
-    printf("Veuillez saisir le nom d'un fichier montré ci-dessus : ");
-    fgets(file,100,stdin);
-    char adre[100]="";
-    char adre2[100]="./DL/";
-    strcat(adre,adre2);
-    printf("%s\n",adre);
     
-    strcat(adre,file);
-
-    //printf("%s\n",file);
-    printf("%s\n",adre);
-    const char *testAdre=adre;
-    printf("%s",testAdre);
-    strcat(cwd,adre);
-    printf("%s\n",cwd);*/
-
-    /*char* chemin=NULL;
-    char file[100];
-    printf("Veuillez saisir le nom d'un fichier montré ci-dessus : ");
-    fgets(file,100,stdin);
-    int longeur=strlen(file);
-    chemin=malloc(longeur+5+1);
-    strcat(chemin,"./DL/");
-    strcat(chemin,file);
-    printf("%s",chemin);*/
 
     char file[100];
     printf("Veuillez saisir le nom d'un fichier montré ci-dessus : ");
@@ -131,40 +90,22 @@ void* envoiFichier(void *data){
     file[strlen(file)-1] = '\0';
     char upload[100]="DL/";
     strcat(upload,file);
-    printf("file = %s",upload);
 
+    attente=1;
     FILE *fp = fopen(upload,"r");
     if(fp==NULL)
     {
         perror("File opern error:");
-        exit(1); 
+        pthread_exit(NULL);
     }
     int taille = fsize(upload);
-    printf("la taille est : %d \n",taille);
     int rep =send(dS2,&taille,sizeof(int),0);
     if(rep==0||rep==-1){
         perror("Erreur send");
         exit(1);
     }
     int increment=0;
-    /*while(1){
-        unsigned char buff[100];
-        int nread = fread(buff,100,1,fp);  
-        printf("%s",buff);
-        
-        
-        sendTCP(dS2,buff,sizeof(buff),0);
-        
-        if (nread < 100){
-            if (feof(fp)){
-                printf("End of file\n");
-            }
-            if (ferror(fp)){
-                printf("Error reading\n");
-            }
-            break;
-        }
-    }*/
+    
     rep=send(dS2,file,sizeof(file),0);
     if(rep==0||rep==-1){
         perror("Erreur send");
@@ -173,8 +114,6 @@ void* envoiFichier(void *data){
     while(increment<taille){
         unsigned char buff[100];
         int nread = fread(buff,1,100,fp);
-        printf("%d",increment);
-        printf("%s",buff);
         rep = send(dS2,buff,sizeof(buff),0);
         if(rep==-1 || rep==0){
             perror("Erreur");
@@ -226,7 +165,7 @@ void* receptionFichier(void *data){
         exit(1);
     }
 
-    printf("Reception fichier");
+
     //int *dS=data;
     int taille;
     int tailleRep=recv(dS2,&taille,sizeof(int),0);
@@ -244,10 +183,11 @@ void* receptionFichier(void *data){
     char adresse2[100]="./Reception/";
     strcat(adresse,adresse2);
     strcat(adresse,nomFichier);
-   	fp = fopen(adresse, "a+"); 
+   	fp = fopen(adresse, "w+"); 
     if(NULL == fp){
-       	printf("Error opening file");
-        exit(1);
+       	
+           printf("Error opening file");
+           pthread_exit(NULL);
     }
 
 
@@ -260,8 +200,8 @@ void* receptionFichier(void *data){
             exit(1);
         }
         increment=increment+byte;
-        printf("%d",byte);
-        printf("%s",rep);
+        //printf("%d",byte);
+        //printf("%s",rep);
         //fprintf(fp,"%s",rep);
         fwrite(rep, 1, 100, fp);
         if (byte < 100){
@@ -304,13 +244,17 @@ void* envoi(void *data){
             exit(0);
         }
         if(strcmp(saisie1,"file")==0){
-            printf("envoi client");
+
+            attente=0;
             pthread_t fichier;
             if(pthread_create(&fichier, NULL,envoiFichier, (void*)&dS)!=0){
                 perror("Erreur création thread");
                 exit(1);
             }
             //pthread_join(fichier,NULL);
+            while(attente==0){
+
+            }
         }
     }
     pthread_exit(NULL);
@@ -333,7 +277,6 @@ void* recevoir(void * data){
             exit(0);
         }
         if(strcmp(rep,"file")==0){
-            printf("recep client");
             pthread_t fichier2;
             if(pthread_create(&fichier2, NULL,receptionFichier, (void*)&dS)!=0){
                 perror("Erreur création thread");
