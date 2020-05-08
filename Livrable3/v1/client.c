@@ -14,6 +14,7 @@
 #include <string.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <dirent.h>
 
 int dSG;
 int port;
@@ -79,13 +80,66 @@ void* envoiFichier(void *data){
 
     
     printf("EnvoiFichier");
-    FILE *fp = fopen("image.png","r");
+    DIR *d;
+    struct dirent *dir;
+    d = opendir("./DL");
+    if (d) {
+    while ((dir = readdir(d)) != NULL) {
+        printf("%s\n", dir->d_name);
+    }
+    closedir(d);
+    }
+
+    /*char cwd[PATH_MAX];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        printf("Current working dir: %s\n", cwd);
+    } else {
+        perror("getcwd() error");
+    }*/
+    //get the file name 
+    /*
+    char file[100];
+    printf("Veuillez saisir le nom d'un fichier montré ci-dessus : ");
+    fgets(file,100,stdin);
+    char adre[100]="";
+    char adre2[100]="./DL/";
+    strcat(adre,adre2);
+    printf("%s\n",adre);
+    
+    strcat(adre,file);
+
+    //printf("%s\n",file);
+    printf("%s\n",adre);
+    const char *testAdre=adre;
+    printf("%s",testAdre);
+    strcat(cwd,adre);
+    printf("%s\n",cwd);*/
+
+    /*char* chemin=NULL;
+    char file[100];
+    printf("Veuillez saisir le nom d'un fichier montré ci-dessus : ");
+    fgets(file,100,stdin);
+    int longeur=strlen(file);
+    chemin=malloc(longeur+5+1);
+    strcat(chemin,"./DL/");
+    strcat(chemin,file);
+    printf("%s",chemin);*/
+
+    char file[100];
+    printf("Veuillez saisir le nom d'un fichier montré ci-dessus : ");
+    fgets(file,100,stdin);
+    file[strlen(file)-1] = '\0';
+    char upload[100]="DL/";
+    strcat(upload,file);
+    printf("file = %s",upload);
+
+    FILE *fp = fopen(upload,"r");
     if(fp==NULL)
     {
-        printf("File opern error");
+        perror("File opern error:");
         exit(1); 
     }
-    int taille = fsize("image.png");
+    int taille = fsize(upload);
     printf("la taille est : %d \n",taille);
     int rep =send(dS2,&taille,sizeof(int),0);
     if(rep==0||rep==-1){
@@ -111,7 +165,11 @@ void* envoiFichier(void *data){
             break;
         }
     }*/
-
+    rep=send(dS2,file,sizeof(file),0);
+    if(rep==0||rep==-1){
+        perror("Erreur send");
+        exit(1);
+    }
     while(increment<taille){
         unsigned char buff[100];
         int nread = fread(buff,1,100,fp);
@@ -170,22 +228,30 @@ void* receptionFichier(void *data){
 
     printf("Reception fichier");
     //int *dS=data;
-    FILE *fp;
-
-	printf("Receiving file...");
-   	fp = fopen("image1.png", "a+"); 
-    if(NULL == fp){
-       	printf("Error opening file");
-        exit(1);
-    }
-
-
     int taille;
     int tailleRep=recv(dS2,&taille,sizeof(int),0);
     int increment=0;
     char rep[100];
     /* Receive data in chunks of 256 bytes */
     int byte=0;
+    char nomFichier[100];
+
+    int nomFichierr=recv(dS2,nomFichier,sizeof(nomFichier),0);
+    FILE *fp;
+
+	printf("Receiving file...");
+    char adresse[100]="";
+    char adresse2[100]="./Reception/";
+    strcat(adresse,adresse2);
+    strcat(adresse,nomFichier);
+   	fp = fopen(adresse, "a+"); 
+    if(NULL == fp){
+       	printf("Error opening file");
+        exit(1);
+    }
+
+
+    
     while(increment<taille)
     {
         byte=recv(dS2,&rep,sizeof(rep),0);

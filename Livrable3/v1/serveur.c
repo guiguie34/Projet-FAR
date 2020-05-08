@@ -57,7 +57,7 @@ void exitt(int n){ //gestion ctrl-c
 
 
 void *sendFichier(void * data){
-
+  
   int dS2=socket(AF_INET, SOCK_STREAM, 0);
   if(dS2==-1){
     perror("Erreur ! Socket non créee");
@@ -122,11 +122,19 @@ void *sendFichier(void * data){
   int taille;
   int tailleRecv = recv(dSC2,&taille,sizeof(int),0);
   printf("%d",taille);
+  char nomFichier[100];
+  int nomFichierr=recv(dSC2,nomFichier,sizeof(nomFichier),0);
   int increment=0;
   for(int i=0;i<nombre;i++){
     int tailleSend=send(descri2->alldS[i],&taille,sizeof(int),0);
     printf("%d\n",descri2->alldS[i]);
     if(tailleSend==0 || tailleSend==-1){
+      perror("Erreur recv");
+      exit(1);
+    }
+    int nomFichierSend=send(descri2->alldS[i],nomFichier,sizeof(nomFichier),0);
+    printf("%d\n",descri2->alldS[i]);
+    if(nomFichierSend==0 || nomFichierSend==-1){
       perror("Erreur recv");
       exit(1);
     }
@@ -165,6 +173,8 @@ void *sendFichier(void * data){
           close(descri2->alldS[i]);
     }
   }
+  close(dSC2);
+  close(dS2);
   printf("transfert ok");
   pthread_exit(NULL);
 }
