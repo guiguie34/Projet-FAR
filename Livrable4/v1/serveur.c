@@ -83,7 +83,8 @@ void *sendFichier(void * data){
   
   ad.sin_family = AF_INET;
   ad.sin_addr.s_addr = INADDR_ANY;
-  ad.sin_port = htons(port+1);
+  port=port+1;
+  ad.sin_port = htons(port);
   
   int bi= bind(dS2,(struct sockaddr*)&ad,sizeof(ad));
   if(bi == -1){
@@ -311,13 +312,14 @@ void *creerSocket(void* data){
         }
       }
     }
+    //printf("%d",salle->port);
     int dSC=accept(descri->dS, (struct sockaddr*) &aC,&lg); //Connexion du client
     if(dSC==-1){
       perror("Erreur connexion");
       exit(1);
     }
     else{
-      printf("Client connecté ...\n");
+      printf("Client connecté ... %d\n",salle->port);
     }
 
     for(int i=0;i<10;i++){ //cherche la première zone libre
@@ -360,6 +362,7 @@ void *recevoirChoix(void *data){
  }
   char msg8[100]=" \n Indiquez le numero choisi: ";
   strcat(msg4,msg8);
+  printf("%s",msg4);
   int snd = send(perma,msg4,sizeof(msg4),0);
   if(snd == 0 || snd == -1){
     perror("erreur send");
@@ -375,10 +378,16 @@ void *recevoirChoix(void *data){
   for(int i=0;i<5;i++){
     if(rep==salles[i].numero && salles[i].placesDispo>0){
       descri->port=salles[i].port;
+      snd = send(perma,&salles[i].port,sizeof(int),0);
+      if(snd == 0 || snd == -1){
+        perror("erreur send");
+        exit(1);
+      }
       //verif ici !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       //renvoyer le port au client
       //envoyer le dSC à recevoirconnexion (changer le dSC)
       salles[i].placesDispo=salles[i].placesDispo-1;
+      //descri->dSC=
       break;
     }
   }
@@ -388,12 +397,12 @@ void *recevoirChoix(void *data){
     perror("Erreur création thread");
     exit(1);
   }*/
-  close(descri->dSC);
+  close(perma);
   pthread_exit(NULL);
   
 }
 
-void* AccueilClient(){
+void* AccueilClient(int *portAccueil){
   int dS=socket(AF_INET, SOCK_STREAM, 0);
   if(dS==-1){
     perror("Erreur ! Socket non créee");
@@ -407,7 +416,7 @@ void* AccueilClient(){
   
   ad.sin_family = AF_INET;
   ad.sin_addr.s_addr = INADDR_ANY;
-  ad.sin_port = htons(port);
+  ad.sin_port = htons(*portAccueil);
   
   int bi= bind(dS,(struct sockaddr*)&ad,sizeof(ad));
   if(bi == -1){
@@ -446,7 +455,7 @@ void* AccueilClient(){
       exit(1);
     }
     else{
-      printf("Client connecté ...\n");
+      printf("Client connecté Accueil...\n");
     }
 
     for(int i=0;i<10;i++){ //cherche la première zone libre
@@ -455,6 +464,8 @@ void* AccueilClient(){
         break;
       }
     }
+
+    descri->dSC=dSC;
     pthread_t one;
     if(pthread_create(&one, NULL,recevoirChoix, (void*)descri)!=0){
       perror("Erreur création thread");
@@ -484,8 +495,9 @@ int main(int argc, char *argv[]){
   //création salle d'attente puis gestion user dans la salle d'attente
 
   port = atoi(argv[1]);
+  int portAccueil=port;
   pthread_t creationAccueil;
-  if(pthread_create(&creationAccueil, NULL,AccueilClient,NULL)!=0){
+  if(pthread_create(&creationAccueil, NULL,AccueilClient,&portAccueil)!=0){
     perror("Erreur création thread");
     exit(1);
   }
@@ -506,5 +518,9 @@ int main(int argc, char *argv[]){
       perror("Erreur création thread");
       exit(1);
     }
+  }
+
+  while(1){
+
   }
 }

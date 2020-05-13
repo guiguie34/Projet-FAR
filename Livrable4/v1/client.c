@@ -300,7 +300,6 @@ void envoiPseudo(char* pseudo, int dS){
 
 int main(int argc, char *argv[]){
 
-
     int dS= socket(AF_INET, SOCK_STREAM, 0);
     if(dS==-1){
         perror("Erreur ! Socket non créee");
@@ -308,9 +307,9 @@ int main(int argc, char *argv[]){
     }
 
     struct sockaddr_in adServ ;
-    adServ.sin_family = AF_INET ;
-    port=atoi(argv[2]); 
-    ip=argv[1];
+    adServ.sin_family = AF_INET;
+    //port=atoi(argv[2]); 
+    //ip=argv[1];
     adServ.sin_port = htons(atoi(argv[2]));
     int res = inet_pton(AF_INET,argv[1], &(adServ.sin_addr));
     if(res == -1){
@@ -332,6 +331,60 @@ int main(int argc, char *argv[]){
         printf("Connexion effectuée !\n");
     }
 
+    char texte[1000];
+    int rep=recv(dS,texte,sizeof(texte),0);
+    if(rep==0||rep==-1){
+        perror("Erreur recv1");
+        exit(1);
+    }
+
+    int numSalon;
+    scanf("%d", &numSalon);
+    rep=send(dS,&numSalon,sizeof(int),0);
+    if(rep==0||rep==-1){
+        perror("Erreur send2");
+        exit(1);
+    }
+
+    int portSalon;
+    rep=recv(dS,&portSalon,sizeof(int),0);
+    if(rep==0||rep==-1){
+        perror("Erreur send3");
+        exit(1);
+    }
+
+    close(dS);
+    
+    dS= socket(AF_INET, SOCK_STREAM, 0);
+    if(dS==-1){
+        perror("Erreur ! Socket non créee");
+        exit(1);
+    }
+
+    adServ.sin_family = AF_INET ;
+    port=portSalon; 
+    ip=argv[1];
+    adServ.sin_port = htons(port);
+    res = inet_pton(AF_INET,argv[1], &(adServ.sin_addr));
+    if(res == -1){
+        perror("Erreur ! Famille d'adresse non valide");
+        exit(1);
+    }
+    else if(res == 0){
+        perror("Erreur ! Adresse réseau non valide");
+        exit(1);
+    }
+
+    lgA = sizeof(struct sockaddr_in);
+    res = connect(dS, (struct sockaddr *) &adServ, lgA); //connexion de la socket decrite par dS à l'adresse donnée (adresse de longeur lgA)
+    if(res==-1){
+        perror("connexion échouée");
+        exit(1);
+    }
+    else{
+        printf("Connexion effectuée !\n");
+    }
+    
     pthread_t envo;
     pthread_t recpt;
     dSG=dS;
