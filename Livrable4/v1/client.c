@@ -52,6 +52,7 @@ void* envoiFichier(void *data){
     struct sockaddr_in adServ ;
     adServ.sin_family = AF_INET ; 
     adServ.sin_port = htons(port+1);
+    printf("%d",port+1);
     int res = inet_pton(AF_INET,ip, &(adServ.sin_addr));
     if(res == -1){
         perror("Erreur ! Famille d'adresse non valide");
@@ -65,7 +66,7 @@ void* envoiFichier(void *data){
     socklen_t lgA = sizeof(struct sockaddr_in);
     res = connect(dS2, (struct sockaddr *) &adServ, lgA); //connexion de la socket decrite par dS à l'adresse donnée (adresse de longeur lgA)
     if(res==-1){
-        perror("connexion échouée");
+        perror("connexion échouée3");
         exit(1);
     }
 
@@ -147,6 +148,7 @@ void* receptionFichier(void *data){
 
     struct sockaddr_in adServ ;
     adServ.sin_family = AF_INET ; 
+    printf("%d",port);
     adServ.sin_port = htons(port+1);
     int res = inet_pton(AF_INET,ip, &(adServ.sin_addr));
     if(res == -1){
@@ -161,7 +163,7 @@ void* receptionFichier(void *data){
     socklen_t lgA = sizeof(struct sockaddr_in);
     res = connect(dS2, (struct sockaddr *) &adServ, lgA); //connexion de la socket decrite par dS à l'adresse donnée (adresse de longeur lgA)
     if(res==-1){
-        perror("connexion échouée");
+        perror("connexion échouée4");
         exit(1);
     }
 
@@ -291,7 +293,6 @@ void* recevoir(void * data){
 
 void envoiPseudo(char* pseudo, int dS){
 
-
     int result = sendTCP(dS,pseudo,sizeof(pseudo),0); //la valeur de retour est traitée dans sendTCP
 
 }
@@ -324,7 +325,7 @@ int main(int argc, char *argv[]){
     socklen_t lgA = sizeof(struct sockaddr_in);
     res = connect(dS, (struct sockaddr *) &adServ, lgA); //connexion de la socket decrite par dS à l'adresse donnée (adresse de longeur lgA)
     if(res==-1){
-        perror("connexion échouée");
+        perror("connexion échouée1");
         exit(1);
     }
     else{
@@ -337,21 +338,29 @@ int main(int argc, char *argv[]){
         perror("Erreur recv1");
         exit(1);
     }
+    printf("%s",texte);
 
     int numSalon;
+    printf("\n Quel salon voulez vous rejoindre ? ");
     scanf("%d", &numSalon);
-    rep=send(dS,&numSalon,sizeof(int),0);
+    rep=send(dS,&numSalon,sizeof(numSalon),0);
     if(rep==0||rep==-1){
         perror("Erreur send2");
         exit(1);
     }
+    printf("...Salon envoyé...\n");
 
     int portSalon;
     rep=recv(dS,&portSalon,sizeof(int),0);
-    if(rep==0||rep==-1){
+    if(rep==-1){
         perror("Erreur send3");
         exit(1);
     }
+    if(rep==0){
+        printf("Numéro de salon incorrect\n");
+        exit(1);
+    }
+    printf("port : %d\n",portSalon);
 
     close(dS);
     
@@ -378,22 +387,28 @@ int main(int argc, char *argv[]){
     lgA = sizeof(struct sockaddr_in);
     res = connect(dS, (struct sockaddr *) &adServ, lgA); //connexion de la socket decrite par dS à l'adresse donnée (adresse de longeur lgA)
     if(res==-1){
-        perror("connexion échouée");
+        perror("connexion échouée2");
         exit(1);
     }
     else{
         printf("Connexion effectuée !\n");
     }
     
+    
+
+    printf("Saisir votre pseudo: ");
+    char pseud[100];
+    //ici fgets non bloquant donc pseduo vide envoyé 
+    //fgets(pseud,100,stdin);
+    scanf("%s",pseud);
+    //Scanf perd des données 
+    envoiPseudo(pseud,dS);
+    
+
     pthread_t envo;
     pthread_t recpt;
     dSG=dS;
     signal(SIGINT,exitt);
-
-    printf("Saisir votre pseudo: ");
-    char pseud[100];
-    fgets(pseud,100,stdin);
-    envoiPseudo(pseud,dS);
 
     pthread_create(&envo, NULL,envoi, (void*)&dS); 
     pthread_create(&recpt, NULL,recevoir, (void*)&dS);
@@ -404,4 +419,5 @@ int main(int argc, char *argv[]){
 		perror("error with closing client : ");
 		exit(1);
 	}
+    
 }

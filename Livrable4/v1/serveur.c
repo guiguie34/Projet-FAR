@@ -58,7 +58,7 @@ void exitt(int n){ //gestion ctrl-c
   }
 
   free(descriG);
-  int closecli3=close(clo3); //fermuture serveur
+  int closecli3=close(clo3); //fermeture serveur
   if(closecli3==-1){
     perror("Error close : ");
     exit(1);
@@ -70,6 +70,8 @@ void exitt(int n){ //gestion ctrl-c
 
 void *sendFichier(void * data){
   
+  struct Descripteur *descri=data;
+
   int dS2=socket(AF_INET, SOCK_STREAM, 0);
   if(dS2==-1){
     perror("Erreur ! Socket non créee");
@@ -83,8 +85,8 @@ void *sendFichier(void * data){
   
   ad.sin_family = AF_INET;
   ad.sin_addr.s_addr = INADDR_ANY;
-  port=port+1;
-  ad.sin_port = htons(port);
+  printf(" port : %d",descri->port+1);
+  ad.sin_port = htons(descri->port+1);
   
   int bi= bind(dS2,(struct sockaddr*)&ad,sizeof(ad));
   if(bi == -1){
@@ -110,7 +112,6 @@ void *sendFichier(void * data){
   descri2->dS=dS2;
   descri2->alldS=calloc(10 , sizeof(int)); //alloue un tableau de 10 cases initialisées à 0
 
-  struct Descripteur *descri=data;
   printf("Transfert fichier ");
   //recevoir le fichier puis l'envoyer aux autres clients (avec le mot clé file envoyé)
   int rep;
@@ -197,8 +198,9 @@ void *recevoirConnexion(void * data){
   int perma=descri->dSC; //on recupère le client courant
   char msg[100];
   memset(msg,0,sizeof(msg));
+  printf("...Reception du pseudo...\n");
   int rep = recv(perma,msg,sizeof(msg),0); //reception du pseudo
-  msg[strlen(msg)-1] = '\0';
+  //msg[strlen(msg)-1] = '\0';
   if(rep==-1){
 	  perror("Echec de la reception du pseudo");
 	  exit(1);
@@ -217,9 +219,17 @@ void *recevoirConnexion(void * data){
     msg2[strlen(msg2)-1] = '\0';
     if(strcmp(msg2,"fin")==0 ||strcmp(msg3,"fin")==0){ //permet vérifier si le client a saisi "fin" ou si il a fait ctrl-c
       printf("%s leave ! \n",msg);
+      printf(" port : %d\n",descri->port);
+
       for(int i=0;i<10;i++){ //libération de la place prise par le client
         if(descri->alldS[i]==perma){
           descri->alldS[i]=0;
+          break;
+        }
+      }
+      for(int i=0;i<5;i++){
+        if(salles[i].port==descri->port){
+          salles[i].placesDispo=salles[i].placesDispo+1;
           break;
         }
       }
@@ -231,6 +241,7 @@ void *recevoirConnexion(void * data){
       descriCourant->alldS=descri->alldS;
       descriCourant->dS=descri->dS;
       descriCourant->dSC=perma;
+      descriCourant->port=descri->port;
       pthread_t fichier;
       if(pthread_create(&fichier, NULL,sendFichier, (void*)descriCourant)!=0){
         perror("Erreur création thread envoi");
@@ -301,7 +312,8 @@ void *creerSocket(void* data){
   descriG=descri;
   descri->dS=dS;
   descri->alldS=calloc(10 , sizeof(int)); //alloue un tableau de 10 cases initialisées à 0
-  
+  descri->port=salle->port;
+
   while(1){
     int plein=0;
     while(plein==0){
@@ -345,38 +357,39 @@ void *recevoirChoix(void *data){
  for(int i=0;i<5;i++){
   char numSalon[10];
   char places[10];
-  char placesDisp[10];
+  char placesR[10];
   sprintf(places, "%d", salles[i].places);
-  sprintf(placesDisp, "%d", salles[i].placesDispo);
+  sprintf(placesR, "%d",salles[i].places-salles[i].placesDispo);
   sprintf(numSalon, "%d", salles[i].numero);
 
   char msg5[1000]="Numéro du salon: ";
   strcat(msg4,msg5);
   strcat(msg4,numSalon);
-  char msg6[100]=" ,Nombre de places: ";
-  strcat(msg6,places);
+  char msg6[100]=",";
+  
+  strcat(msg6,placesR);
   strcat(msg4,msg6);
-  char msg7[100]=" ,Places disponibles: ";
-  strcat(msg7,placesDisp);
+  char msg7[100]="/";
+  strcat(msg7,places);
+  strcat(msg7,"\n");
   strcat(msg4,msg7);
  }
-  char msg8[100]=" \n Indiquez le numero choisi: ";
-  strcat(msg4,msg8);
-  printf("%s",msg4);
+
   int snd = send(perma,msg4,sizeof(msg4),0);
   if(snd == 0 || snd == -1){
     perror("erreur send");
     exit(1);
   }
-
+  printf("...Attente salon....\n");
   int salon;
   int rep = recv(perma,&salon,sizeof(salon),0); //reception du pseudo
   if(rep==-1 || rep ==0){
 	  perror("Erreur choix");
 	  exit(1);
   }
+  printf("Salon choisi par client : %d \n",salon);
   for(int i=0;i<5;i++){
-    if(rep==salles[i].numero && salles[i].placesDispo>0){
+    if(salon==salles[i].numero && salles[i].placesDispo>0){
       descri->port=salles[i].port;
       snd = send(perma,&salles[i].port,sizeof(int),0);
       if(snd == 0 || snd == -1){
@@ -494,19 +507,14 @@ int main(int argc, char *argv[]){
   salles = malloc(5 * sizeof (Salon));
   //création salle d'attente puis gestion user dans la salle d'attente
 
-  port = atoi(argv[1]);
-  int portAccueil=port;
-  pthread_t creationAccueil;
-  if(pthread_create(&creationAccueil, NULL,AccueilClient,&portAccueil)!=0){
-    perror("Erreur création thread");
-    exit(1);
-  }
+  
 
   //création des 5 salons
-
+  port = atoi(argv[1]);
+  int portAccueil=port;
 
   for(int i=0;i<5;i++){
-    port=port+1;
+    port=port+100;
     
     salles[i].numero=i+1;
     salles[i].places=10;
@@ -520,6 +528,12 @@ int main(int argc, char *argv[]){
     }
   }
 
+  
+  pthread_t creationAccueil;
+  if(pthread_create(&creationAccueil, NULL,AccueilClient,&portAccueil)!=0){
+    perror("Erreur création thread");
+    exit(1);
+  }
   while(1){
 
   }
