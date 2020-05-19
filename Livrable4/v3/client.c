@@ -163,7 +163,7 @@ void* receptionFichier(void *data){
     socklen_t lgA = sizeof(struct sockaddr_in);
     res = connect(dS2, (struct sockaddr *) &adServ, lgA); //connexion de la socket decrite par dS à l'adresse donnée (adresse de longeur lgA)
     if(res==-1){
-        perror("connexion échouée4");
+        perror("connexion échouée4\n");
         exit(1);
     }
 
@@ -180,7 +180,7 @@ void* receptionFichier(void *data){
     int nomFichierr=recv(dS2,nomFichier,sizeof(nomFichier),0);
     FILE *fp;
 
-	printf("Receiving file...");
+	printf("Receiving file...\n");
     char adresse[100]="";
     char adresse2[100]="./Reception/";
     strcat(adresse,adresse2);
@@ -188,7 +188,7 @@ void* receptionFichier(void *data){
    	fp = fopen(adresse, "w+"); 
     if(NULL == fp){
        	
-           printf("Error opening file");
+           printf("Error opening file\n");
            pthread_exit(NULL);
     }
 
@@ -198,7 +198,7 @@ void* receptionFichier(void *data){
     {
         byte=recv(dS2,&rep,sizeof(rep),0);
         if(byte==0||byte==-1){
-            perror("Erreur recv");
+            perror("Erreur recv\n");
             exit(1);
         }
         increment=increment+byte;
@@ -238,14 +238,29 @@ void* envoi(void *data){
         memset(saisie1,0,sizeof(saisie1));
         //printf("\nsaisir le message: ");
         fgets(saisie1,100,stdin);
-
+        char temp[100];
+        strcpy(temp,saisie1);
+        temp[strlen(temp)-1] = '\0';
+        if(strcmp(temp,"!suppr")==0){
+              printf("Voulez-vous vraiment supprimer le salon (o/n) ?");
+              char suppr[100];
+              scanf("%s",suppr);
+              if(strcmp(suppr,"o")!=0){
+                  memset(saisie1,0,sizeof(saisie1));
+              }
+        }
         int result = sendTCP(*dS,saisie1,sizeof(saisie1),0); //la valeur de retour est traitée dans sendTCP
-        saisie1[strlen(saisie1)-1] = '\0'; //permet d'appliquer strcmp après fgets
-        if(strcmp(saisie1,"fin")==0){
+        if(strcmp(temp,"!modif")==0){
+            char nouveauNom[100];
+            printf("Quel nom de salon voulez-vous donner ? ");
+            fgets(nouveauNom,100,stdin);
+            result = sendTCP(*dS,nouveauNom,sizeof(nouveauNom),0);
+        }
+        if(strcmp(temp,"fin")==0){
             printf("Arret du client\n");
             exit(0);
         }
-        if(strcmp(saisie1,"file")==0){
+        if(strcmp(temp,"file")==0){
 
             attente=0;
             pthread_t fichier;
@@ -340,30 +355,63 @@ int main(int argc, char *argv[]){
     }
     printf("%s",texte);
 
-    int numSalon;
-    printf("\n Quel salon voulez vous rejoindre ? ");
-    scanf("%d", &numSalon);
-    rep=send(dS,&numSalon,sizeof(numSalon),0);
+    //Choix du client Rejoindre ou Créer son salon
+    int choix;
+    scanf("%d", &choix);
+    rep=send(dS,&choix,sizeof(choix),0);
     if(rep==0||rep==-1){
         perror("Erreur send2");
         exit(1);
     }
-    printf("...Salon envoyé...\n");
+    //rejoint un salon existant
+    if(choix==1){
+        printf("Veuillez entré le numéro du salon que vous voulez rejoindre : ");
+        int numSalon;
+        scanf("%d", &numSalon);
+        rep=send(dS,&numSalon,sizeof(numSalon),0);
+        if(rep==0||rep==-1){
+            perror("Erreur send2");
+            exit(1);
+        }
+        printf("...Salon envoyé...\n");
+    }
+    //Créer son chan
+    else if(choix==2){
+        printf("Veuillez entrer le nom du channel sans espace : ");
+        char nomSalon[100];
+        //fgets(nomSalon,100,stdin);
+        scanf("%s",nomSalon);
+        rep=send(dS,nomSalon,sizeof(nomSalon),0);
+        if(rep==0||rep==-1){
+            perror("Erreur send2");
+            exit(1);
+        }
+        printf("Channel crée  \n");
+        
+    }
+    else{
+        printf("Erreur dans le choix...");
+        close(dS);
+        exit(1);
+    }
 
     int portSalon;
     rep=recv(dS,&portSalon,sizeof(int),0);
+    if(portSalon==-1){
+        printf("Salon choisi complet\n");
+        exit(1);
+    }
     if(rep==-1){
         perror("Erreur send3");
         exit(1);
     }
     if(rep==0){
-        printf("Numéro de salon incorrect\n");
+        printf("Numéro de salon incorrect \n");
         exit(1);
     }
-    printf("port : %d\n",portSalon);
-
     close(dS);
     
+
     dS= socket(AF_INET, SOCK_STREAM, 0);
     if(dS==-1){
         perror("Erreur ! Socket non créee");
@@ -419,5 +467,6 @@ int main(int argc, char *argv[]){
 		perror("error with closing client : ");
 		exit(1);
 	}
+    
     
 }
