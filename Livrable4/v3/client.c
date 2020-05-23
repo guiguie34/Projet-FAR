@@ -377,6 +377,16 @@ int main(int argc, char *argv[]){
     }
     //Créer son chan
     else if(choix==2){
+        int acces;
+        rep=recv(dS,&acces,sizeof(int),0);
+        if(rep==-1){
+            printf("Salon choisi complet\n");
+            exit(1);
+        }
+        if(acces==0){
+            printf("Nombre de salons max atteint");
+            exit(0);
+        }
         printf("Veuillez entrer le nom du channel sans espace : ");
         char nomSalon[100];
         //fgets(nomSalon,100,stdin);
@@ -397,6 +407,7 @@ int main(int argc, char *argv[]){
 
     int portSalon;
     rep=recv(dS,&portSalon,sizeof(int),0);
+    //printf("Port du salon: %d\n",portSalon);
     if(portSalon==-1){
         printf("Salon choisi complet\n");
         exit(1);
