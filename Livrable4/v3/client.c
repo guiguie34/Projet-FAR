@@ -255,6 +255,11 @@ void* envoi(void *data){
             printf("Quel nom de salon voulez-vous donner ? ");
             fgets(nouveauNom,100,stdin);
             result = sendTCP(*dS,nouveauNom,sizeof(nouveauNom),0);
+
+            char nouvelleDescription[200];
+            printf("Quelle description voulez-vous donner ? ");
+            fgets(nouvelleDescription,200,stdin);
+            result = sendTCP(*dS,nouvelleDescription,sizeof(nouvelleDescription),0);
         }
         if(strcmp(temp,"fin")==0){
             printf("Arret du client\n");
@@ -365,7 +370,7 @@ int main(int argc, char *argv[]){
     }
     //rejoint un salon existant
     if(choix==1){
-        printf("Veuillez entré le numéro du salon que vous voulez rejoindre : ");
+        printf("Veuillez entrer le numéro du salon que vous voulez rejoindre : ");
         int numSalon;
         scanf("%d", &numSalon);
         rep=send(dS,&numSalon,sizeof(numSalon),0);
@@ -387,13 +392,22 @@ int main(int argc, char *argv[]){
             printf("Nombre de salons max atteint");
             exit(0);
         }
-        printf("Veuillez entrer le nom du channel sans espace : ");
+        printf("Veuillez entrer le nom du channel sans espaces : ");
         char nomSalon[100];
         //fgets(nomSalon,100,stdin);
         scanf("%s",nomSalon);
         rep=send(dS,nomSalon,sizeof(nomSalon),0);
         if(rep==0||rep==-1){
             perror("Erreur send2");
+            exit(1);
+        }
+        printf("Veuillez entrer la description sans espaces: ");
+        char description[100];
+        //fgets(nomSalon,100,stdin);
+        scanf("%s",description);
+        rep=send(dS,description,sizeof(description),0);
+        if(rep==0||rep==-1){
+            perror("Erreur send3");
             exit(1);
         }
         printf("Channel crée  \n");

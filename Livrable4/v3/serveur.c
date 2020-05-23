@@ -33,6 +33,7 @@ typedef struct Salon{
   int placesDispo; //places dispo actuellement
   int numero; //numéro du salon
   int port; //port du salon
+  char description[200];
 }Salon;
 
 Salon* salles;
@@ -280,6 +281,15 @@ void *recevoirConnexion(void * data){
       }
       printf("Le salon %d a été renommé en: %s\n",index,nouveauNom);
       memcpy(salles[index].name,nouveauNom,100);
+
+      char nouvelleDescription[200];
+      rep=recv(perma,nouvelleDescription,sizeof(nouvelleDescription),0);
+      nouvelleDescription[strlen(nouvelleDescription)-1] = '\0';
+      if(rep ==0 | rep ==1){
+        perror("Erreur renommage");
+      }
+      printf("La description du salon %d a été changée en: %s\n",index,nouvelleDescription);
+      memcpy(salles[index].description,nouvelleDescription,200);
     }
     if(strcmp(msg2,"!suppr")==0){ // CA BUG ICIIIIIIIIIIIIIIII
       printf("Debut suppr\n");
@@ -333,11 +343,12 @@ void *recevoirConnexion(void * data){
         nbSalons--;
         salles = tmp;*/
         sprintf(salles[index].name,"");
+        sprintf(salles[index].description,"");
         salles[index].numero=0;
         salles[index].places=0;
         salles[index].placesDispo=0;
         salles[index].port=0;
-        
+
         Salon *tmp=malloc(sizeof(Salon));
         *tmp=salles[index];
         for(int i=index;i<nbSalons-1;i++){
@@ -465,11 +476,12 @@ void *recevoirChoix(void *data){
   char places[10];
   char placesR[10];
   char nomSalon[100];
+  char description[200];
   sprintf(places, "%d", salles[i].places);
   sprintf(placesR, "%d",salles[i].places-salles[i].placesDispo);
   sprintf(numSalon, "%d", salles[i].numero);
   sprintf(nomSalon,"%s",salles[i].name);
-
+  sprintf(description,"%s",salles[i].description);
   char msg5[100]=" ";
   char msg6[100]=". ";
 
@@ -482,6 +494,8 @@ void *recevoirChoix(void *data){
   strcat(msg4,msg5);
   char msg7[100]="/";
   strcat(msg7,places);
+  strcat(msg7," ");
+  strcat(msg7, description);
   strcat(msg7,"\n");
   strcat(msg4,msg7);
  }
@@ -561,7 +575,14 @@ void *recevoirChoix(void *data){
         perror("Erreur reception nom salon");
         pthread_exit(NULL);
       }
+      char description[200];
+      rep = recv(perma,description,sizeof(description),0); //reception du choix 
+      if(rep==-1 || rep ==0){
+        perror("Erreur reception nom salon");
+        pthread_exit(NULL);
+      }
       printf("salon: %s\n",nomSalon);
+
       int portDynamique = portAccueil+100;
       for(int i=0;i<nbSalons;i++){
         for(int j=0;j<nbSalons;j++){
@@ -578,6 +599,7 @@ void *recevoirChoix(void *data){
       salles[nbSalons].placesDispo=9;
       salles[nbSalons].port=portDynamique;
       sprintf(salles[nbSalons].name,"%s",nomSalon);
+      sprintf(salles[nbSalons].description,"%s",description);
       nbSalons=nbSalons+1;
       pthread_t creationSalon;
       if(pthread_create(&creationSalon, NULL,creerSocket, (void*)&salles[nbSalons-1])!=0){
@@ -702,7 +724,7 @@ void* AccueilClient(int *portAccueil){
 void *voirSalon(){
   while(1){
   for(int i=0;i<nbSalons;i++){
-    printf("%s %d %d %d %d\n",salles[i].name,salles[i].numero,salles[i].places,salles[i].placesDispo,salles[i].port);
+    printf("%s %d %d %d %d %s\n",salles[i].name,salles[i].numero,salles[i].places,salles[i].placesDispo,salles[i].port,salles[i].description);
   }
   sleep(5);
   }
@@ -730,6 +752,7 @@ int main(int argc, char *argv[]){
     salles[i].places=10;
     salles[i].placesDispo=10;
     salles[i].port=port;
+    sprintf(salles[i].description,"Salon Default");
     nbSalons=nbSalons+1;
     pthread_t creationSalon;
     if(pthread_create(&creationSalon, NULL,creerSocket, (void*)&salles[i])!=0){
