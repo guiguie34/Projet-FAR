@@ -173,7 +173,6 @@ void* receptionFichier(void *data){
     int tailleRep=recv(dS2,&taille,sizeof(int),0);
     int increment=0;
     char rep[100];
-    /* Receive data in chunks of 256 bytes */
     int byte=0;
     char nomFichier[100];
 
@@ -274,7 +273,7 @@ void* envoi(void *data){
                 exit(1);
             }
             //pthread_join(fichier,NULL);
-            while(attente==0){
+            while(attente==0){ //pour eviter que la saisie du nom de fichier soit pertubé par la saisie d'un message textuel
 
             }
         }
@@ -401,7 +400,7 @@ int main(int argc, char *argv[]){
             perror("Erreur send2");
             exit(1);
         }
-        printf("Veuillez entrer la description sans espaces: ");
+        printf("Veuillez entrer la description sans espaces (possibilité de modifier plus tard): ");
         char description[100];
         //fgets(nomSalon,100,stdin);
         scanf("%s",description);
